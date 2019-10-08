@@ -10,8 +10,13 @@ import java.util.Optional;
 
 @Service
 public class GuitarService {
-    @Autowired
+
     GuitarRepository guitarRepository;
+
+    @Autowired
+    public GuitarService(GuitarRepository guitarRepository) {
+        this.guitarRepository = guitarRepository;
+    }
 
     public List<Guitar> getAll() {
         return guitarRepository.findAll();

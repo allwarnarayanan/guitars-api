@@ -3,19 +3,22 @@ package com.galvanize.guitars.controllers;
 import com.galvanize.guitars.entities.Guitar;
 import com.galvanize.guitars.services.GuitarService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @RestController
 @RequestMapping("/guitars")
 public class GuitarController {
-    @Autowired
-    GuitarService guitarService;
+
+
+    private GuitarService guitarService;
+
+    public GuitarController(GuitarService guitarService) {
+        this.guitarService = guitarService;
+    }
 
     @GetMapping("/all")
     public List<Guitar> getAllGuitars(){

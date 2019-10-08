@@ -1,66 +1,68 @@
 package com.galvanize.guitars.controllers;
 
 import com.galvanize.guitars.entities.Guitar;
-import com.galvanize.guitars.repositories.GuitarRepository;
 import com.galvanize.guitars.services.GuitarService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 @RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
-@Transactional
+@WebMvcTest(GuitarController.class)
 public class GuitarControllerTests {
 
     @Autowired
-    MockMvc mvc;
+    private MockMvc mvc;
 
-    @Autowired
-    GuitarRepository guitarRepository;
+    @MockBean
+    private GuitarService guitarService;
 
-    @Autowired
-    GuitarService guitarService;
-
-
-    private List<Guitar> guitars = new ArrayList<>();
+    private List<Guitar> guitars = new ArrayList<>();;
 
     @Before
     public void setUp() throws Exception {
 
+        Guitar g = null;
         for (int i = 0; i < 10; i++) {
-            guitars.add(new Guitar("Brand"+i, "Model"+i, 6));
+            g = new Guitar("Brand"+i, "Model"+i, 6);
+            g.setGuitarId(Long.valueOf(i));
+            guitars.add(g);
         }
-        guitarRepository.saveAll(guitars);
     }
 
     @Test
     public void getAllGuitars() throws Exception {
+        when(guitarService.getAll()).thenReturn(guitars);
+
         mvc.perform(get("/guitars/all"))
                 .andExpect(status().isOk());
     }
 
     @Test
     public void createGuitar() throws Exception {
+        Guitar guitar = new Guitar("BRAND", "MODEL", 6);
+        guitar.setGuitarId(99l);
+        when(guitarService.createGuitar(any())).thenReturn(guitar);
+
         mvc.perform(post("/guitars").contentType(MediaType.APPLICATION_JSON)
                 .content("{ \"brand\": \"BRAND\", \"model\":\"MODEL\", \"strings\": \"6\" }"))
-                .andExpect(status().isOk());
-//                .andExpect(jsonPath("guitarId").exists());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("guitarId").exists());
     }
 
     @Test
@@ -72,6 +74,9 @@ public class GuitarControllerTests {
         //Manually convert it to json (there are other ways, but I wasn't sure if you knew them yet)
         String json = String.format("{ \"guitarId\": \"%s\", \"brand\": \"%s\", \"model\":\"%s\", \"strings\": \"%s\" }",
                 guitar.getGuitarId(), guitar.getBrand(), guitar.getModel(), guitar.getStrings());
+
+        when(guitarService.getGuitarById(any())).thenReturn(guitar);
+        when(guitarService.updateGuitar(any())).thenReturn(guitar);
 
         mvc.perform(put("/guitars/"+guitar.getGuitarId()).contentType(MediaType.APPLICATION_JSON).content(json))
                 .andExpect(status().isOk())
@@ -86,6 +91,12 @@ public class GuitarControllerTests {
         String newModel = "Updated Model";
         String jsonData = String.format("{ \"model\": \"%s\", \"brand\": \"%s\" }",
                                         newModel, newBrand);
+        when(guitarService.getGuitarById(anyLong())).thenReturn(guitar);
+
+        guitar.setBrand(newBrand);
+        guitar.setModel(newModel);
+        when(guitarService.updateGuitar(any())).thenReturn(guitar);
+
         mvc.perform(patch("/guitars/"+guitar.getGuitarId()).contentType(MediaType.APPLICATION_JSON).content(jsonData))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("model").value(newModel))
@@ -98,12 +109,14 @@ public class GuitarControllerTests {
         //Pick a guitar from the ones we create in setup
         long id = guitars.get(8).getGuitarId();
 
+        when(guitarService.deleteGuitar(anyLong())).thenReturn(true);
+
         //perform the delete, and make sure the return status is ok (2xx)
         mvc.perform(delete("/guitars/"+id))
                 .andExpect(status().isOk());
 
         //make sure the guitar doesn't exist in the db
-        assertFalse(guitarRepository.findById(id).isPresent());
+//        assertFalse(guitarRepository.findById(id).isPresent());
 
     }
 }

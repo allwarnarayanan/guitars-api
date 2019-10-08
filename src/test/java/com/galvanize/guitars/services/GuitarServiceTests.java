@@ -2,40 +2,51 @@ package com.galvanize.guitars.services;
 
 import com.galvanize.guitars.entities.Guitar;
 import com.galvanize.guitars.repositories.GuitarRepository;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
-@RunWith(SpringRunner.class)
-@Transactional
+@RunWith(MockitoJUnitRunner.class)
 public class GuitarServiceTests {
 
-    @Autowired
+    @Mock
     GuitarRepository guitarRepository;
 
-    @Autowired
+
     GuitarService guitarService;
+
+    @Before
+    public void setUp() throws Exception {
+        guitarService = new GuitarService(guitarRepository);
+    }
 
     @Test
     public void getAllGuitars() {
         List<Guitar> guitars = new ArrayList<>();
+        Guitar g = null;
         for (int i = 0; i < 10; i++) {
-            guitars.add(new Guitar("Brand"+i, "Model"+i, 6));
+            g = new Guitar("Brand"+i, "Model"+i, 6);
+            g.setGuitarId(Long.valueOf(i));
+            guitars.add(g);
         }
-        guitarRepository.saveAll(guitars);
+//        guitarRepository.saveAll(guitars);
+
+        when(guitarRepository.findAll()).thenReturn(guitars);
 
         List<Guitar> svcGuitars = guitarService.getAll();
-
+        assertTrue(svcGuitars.size()>0);
         for(Guitar guitar : svcGuitars) {
             assertNotNull(guitar.getGuitarId());
         }
@@ -45,7 +56,8 @@ public class GuitarServiceTests {
     @Test
     public void getOneGuitar() {
         Guitar guitar = new Guitar("Guild", "D45Bld", 6);
-        guitarRepository.save(guitar);
+        guitar.setGuitarId(Long.valueOf(99));
+        when(guitarRepository.findById(anyLong())).thenReturn(Optional.of(guitar));
 
         Guitar newGuitar = guitarService.getGuitarById(guitar.getGuitarId());
 
@@ -55,6 +67,9 @@ public class GuitarServiceTests {
     @Test
     public void createGuitar() {
         Guitar guitar = new Guitar("Guild", "D45Bld", 6);
+        guitar.setGuitarId(Long.valueOf(99));
+
+        when(guitarRepository.save(any())).thenReturn(guitar);
 
         guitar = guitarService.createGuitar(guitar);
 
@@ -64,16 +79,17 @@ public class GuitarServiceTests {
     @Test
     public void deleteGuitar() {
         Guitar guitar = new Guitar("Guild", "D45Bld", 6);
-        guitarRepository.save(guitar);
-        Long guitarId = guitar.getGuitarId();
+        guitar.setGuitarId(Long.valueOf(99));
 
-        boolean deleted = guitarService.deleteGuitar(guitarId);
+        when(guitarRepository.findById(anyLong())).thenReturn(Optional.of(guitar));
+
+        boolean deleted = guitarService.deleteGuitar(Long.valueOf(99));
 
         assertTrue(deleted);
 
-        Optional<Guitar> deletedGuitar = guitarRepository.findById(guitar.getGuitarId());
+//        Optional<Guitar> deletedGuitar = guitarRepository.findById(guitar.getGuitarId());
 
-        assertFalse(deletedGuitar.isPresent());
+//        assertFalse(deletedGuitar.isPresent());
 
 
     }
